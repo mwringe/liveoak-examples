@@ -1,11 +1,15 @@
 package io.liveoak.helper;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
 import com.google.common.net.HttpHeaders;
 
 import org.jboss.aerogear.android.Callback;
+import org.jboss.aerogear.android.unifiedpush.PushConfig;
+import org.jboss.aerogear.android.unifiedpush.PushRegistrar;
+import org.jboss.aerogear.android.unifiedpush.Registrations;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -13,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 /**
@@ -291,7 +296,7 @@ public class LiveOak {
         }
     }
 
-    public PushSubscription createPushSubscription(String pushResourceName, String resourcePath, JSONObject message, String alias) {
+    public PushSubscription createPushSubscription(String pushResourceName, String alias, String resourcePath, JSONObject message) {
         return new PushSubscription(pushResourceName, resourcePath, message, alias);
     }
 
@@ -313,7 +318,6 @@ public class LiveOak {
         public void subscribe(Callback<JSONObject> callback) {
             String subscribeURL = LIVEOAK_URL + "/" + APPLICATION_NAME + "/" + pushResourceName + "/subscriptions/" + alias;
 
-            //String jsonString = "{ 'resourcePath': '" + resourcePath + "', 'message':" + message + ", 'alias':['" + alias + "']}";
             JSONObject jsonObject = new JSONObject();
             try {
                 jsonObject.put("resourcePath", resourcePath);
@@ -334,6 +338,58 @@ public class LiveOak {
         public void unsubscribe(Callback<JSONObject> callback) {
             String unsubscribeURL = LIVEOAK_URL + "/" + APPLICATION_NAME + "/" + pushResourceName + "/subscriptions";
             new DeleteTask(callback).execute(unsubscribeURL + "/" + alias);
+        }
+    }
+
+    public UPSRegistration createUPSRegistration(String pushResourceName, String pushVariantID, final String alias) {
+        return new UPSRegistration(pushResourceName, pushVariantID, alias);
+    }
+
+    public class UPSRegistration {
+
+        private PushRegistrar registration;
+
+        String variantResourceURL;
+        String alias;
+
+        private UPSRegistration(String pushResourceName, String pushVariantID, final String alias) {
+            this.variantResourceURL = LIVEOAK_URL + "/" + APPLICATION_NAME + "/" + pushResourceName + "/variants/" + pushVariantID;
+            this.alias = alias;
+        }
+
+        public void register(final Context context, final Callback<Void> callback) {
+            getResource(variantResourceURL, new Callback<JSONObject>() {
+                @Override
+                public void onSuccess(JSONObject jsonObject) {
+                    try {
+                        String UPS_URL = jsonObject.optString("ups-url");
+                        String variantId = jsonObject.optString("variant-id");
+                        String variantSecret = jsonObject.optString("variant-secret");
+                        String googleProjectNumber = jsonObject.optString("google-project-number");
+
+                        PushConfig config = new PushConfig(new URI(UPS_URL), googleProjectNumber);
+                        config.setVariantID(variantId);
+                        config.setSecret(variantSecret);
+                        config.setAlias(alias);
+
+                        Registrations registrations = new Registrations();
+                        registration = registrations.push("liveoak-chat", config);
+
+                        registration.register(context, callback);
+                    } catch (Exception e) {
+                        callback.onFailure(e);
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    callback.onFailure(e);
+                }
+            });
+        }
+
+        public void unregister(Context context, Callback<Void> callback ) {
+            registration.unregister(context, callback);
         }
     }
 }

@@ -72,17 +72,9 @@ public class ApplicationActivity extends Activity implements MessageHandler {
 
 
         this.chatsFragment = (ChatsFragment) this.getFragmentManager().findFragmentById(R.id.chats_fragment);
-        Log.e(logTag, "CHATSFRAGMENT ONCREATE " + this.chatsFragment);
 
-        // access the registration object
-        Log.e(logTag, getApplication().toString());
-        PushRegistrar push = ((ChatApplication) getApplication())
-                .getRegistration();
-
-        // fire up registration..
-
-        // The method will attempt to register the device with GCM and the UnifiedPush server
-        push.register(getApplicationContext(), new Callback<Void>() {
+        LiveOak.UPSRegistration registration = ((ChatApplication) getApplication()).getRegistration();
+        registration.register(this, new Callback<Void>() {
             private static final long serialVersionUID = 1L;
 
             @Override
@@ -193,8 +185,8 @@ public class ApplicationActivity extends Activity implements MessageHandler {
             });
 
 
-            PushRegistrar push = ((ChatApplication) getApplication()).getRegistration();
-            push.unregister(this, new Callback<Void>() {
+            LiveOak.UPSRegistration registration = ((ChatApplication) getApplication()).getRegistration();
+            registration.unregister(this, new Callback<Void>() {
                 private static final long serialVersionUID = 1L;
 
                 @Override

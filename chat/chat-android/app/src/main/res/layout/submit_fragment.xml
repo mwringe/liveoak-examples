@@ -21,7 +21,8 @@
         android:layout_weight="1"
         android:singleLine="true"
         android:imeActionLabel="@string/send"
-        android:imeOptions="actionSend"/>
+        android:imeOptions="actionSend"
+        android:inputType="text|textAutoCorrect"/>
 
     <Button
         android:id="@+id/send_button"
